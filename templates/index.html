@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Password Strength Checker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h2>Password Strength Checker & Generator</h2>
+
+    <input type="text" id="password" placeholder="Enter password">
+    <div id="strength-bar"></div>
+    <p id="strength-text"></p>
+    <button onclick="generatePassword()">Generate Strong Password</button>
+    <p id="generated"></p>
+    <p id="breach-check"></p>
+  </div>
+
+  <script>
+    const passwordInput = document.getElementById("password");
+    const strengthBar = document.getElementById("strength-bar");
+    const strengthText = document.getElementById("strength-text");
+    const breachCheck = document.getElementById("breach-check");
+    const generated = document.getElementById("generated");
+
+    passwordInput.addEventListener("input", () => {
+      const val = passwordInput.value;
+      const score = calculateStrength(val);
+      updateStrengthBar(score);
+      checkPwned(val);
+    });
+
+    function calculateStrength(pw) {
+      let score = 0;
+      if (pw.length > 8) score++;
+      if (/[A-Z]/.test(pw)) score++;
+      if (/[0-9]/.test(pw)) score++;
+      if (/[^A-Za-z0-9]/.test(pw)) score++;
+      return score;
+    }
+
+    function updateStrengthBar(score) {
+      const colors = ["red", "orange", "yellow", "lightgreen", "green"];
+      strengthBar.style.width = (score * 25) + "%";
+      strengthBar.style.backgroundColor = colors[score];
+      const texts = ["Very Weak", "Weak", "Moderate", "Strong", "Very Strong"];
+      strengthText.textContent = texts[score];
+    }
+
+    function generatePassword() {
+      const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
+      let pw = "";
+      for (let i = 0; i < 16; i++) {
+        pw += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      passwordInput.value = pw;
+      passwordInput.dispatchEvent(new Event("input"));
+      generated.textContent = "Generated Password: " + pw;
+    }
+
+    async function checkPwned(pw) {
+      const res = await fetch("/check_password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw })
+      });
+      const data = await res.json();
+      if (data.pwned) {
+        breachCheck.textContent = "⚠️ This password has been found in data breaches!";
+        breachCheck.style.color = "red";
+      } else {
+        breachCheck.textContent = "✅ Password is safe (not found in breaches)";
+        breachCheck.style.color = "green";
+      }
+    }
+  </script>
+</body>
+</html>
